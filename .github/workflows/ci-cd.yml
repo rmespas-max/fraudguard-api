@@ -1,0 +1,33 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  quality-and-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Dependencies
+        run: |
+          pip install ruff pytest pytest-cov
+          pip install -r requirements.txt
+      - name: Linter
+        run: ruff check .
+      - name: Tests
+        run: pytest --cov=src tests/ --cov-fail-under=80
+
+  docker-build:
+    needs: quality-and-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker Image
+        run: docker build -t fraudguard-api:${{ github.sha }} .
